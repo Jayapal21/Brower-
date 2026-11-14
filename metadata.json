@@ -1,0 +1,8 @@
+{
+  "name": "Obscura",
+  "description": "Lightweight stealth browser, DOM inspector, Markdown/data extractor, and parallel web scraper with built-in tracker blocking and SSRF protection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

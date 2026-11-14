@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Obscura</string>
+    <string name="tagline">Stealth Browser &amp; Extraction Engine</string>
+    <string name="nav_browser">Browser</string>
+    <string name="nav_extract">Extract</string>
+    <string name="nav_scrape">Scrape</string>
+    <string name="nav_network">Network</string>
+    <string name="nav_stealth">Stealth</string>
+    <string name="cd_back">Navigate back</string>
+    <string name="cd_forward">Navigate forward</string>
+    <string name="cd_reload">Reload page</string>
+    <string name="cd_go">Fetch URL</string>
+    <string name="cd_screenshot">Capture screenshot</string>
+    <string name="cd_pdf">Export PDF</string>
+    <string name="cd_hero_banner">Obscura stealth browser architecture illustration</string>
+    <string name="cd_copy_output">Copy output</string>
+    <string name="cd_share_output">Share output</string>
+    <string name="cd_clear_logs">Clear logs</string>
+    <string name="cd_toggle_server">Toggle local MCP/CDP bridge</string>
+</resources>
