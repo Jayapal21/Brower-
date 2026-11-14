@@ -2,52 +2,71 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Obsidian & Emerald-Cyan Palette
-val ObsidianBg = Color(0xFF0B0E14)
-val ObsidianSurface = Color(0xFF121721)
-val ObsidianSurfaceVariant = Color(0xFF1A2230)
-val ObsidianSurfaceHigh = Color(0xFF232D3F)
-val ObsidianOutline = Color(0xFF2E3B4E)
-
-val EmeraldPrimary = Color(0xFF2EE59D)
-val EmeraldOnPrimary = Color(0xFF003823)
-val EmeraldContainer = Color(0xFF0A4D35)
-val EmeraldOnContainer = Color(0xFF7CF8C3)
-
-val CyanSecondary = Color(0xFF38BDF8)
-val CyanOnSecondary = Color(0xFF003549)
-val CyanContainer = Color(0xFF0E445E)
-val CyanOnContainer = Color(0xFFBAE6FD)
-
-val IndigoTertiary = Color(0xFFA78BFA)
-val IndigoOnTertiary = Color(0xFF28175A)
-val IndigoContainer = Color(0xFF3E297A)
-val IndigoOnContainer = Color(0xFFDDD6FE)
-
-val CoralError = Color(0xFFFB7185)
-val CoralOnError = Color(0xFF4C0519)
-val CoralContainer = Color(0xFF6B1026)
-val CoralOnContainer = Color(0xFFFFD9DE)
-
-val AmberWarning = Color(0xFFF59E0B)
-val TextPrimaryDark = Color(0xFFF1F5F9)
-val TextSecondaryDark = Color(0xFF94A3B8)
-
-// Light Theme Palette
-val LightBg = Color(0xFFF8FAFC)
+// --- Day Theme ("Soft Cloud & Cobalt") ---
+val LightBackground = Color(0xFFF3F6FB)
+val LightSurfaceLowest = Color(0xFFFFFFFF)
+val LightSurfaceLow = Color(0xFFF8FAFE)
 val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFE2E8F0)
-val LightOutline = Color(0xFFCBD5E1)
+val LightSurfaceContainer = Color(0xFFF1F5FA)
+val LightSurfaceHigh = Color(0xFFE9EFF7)
+val LightSurfaceHighest = Color(0xFFE0E8F3)
+val LightTextPrimary = Color(0xFF0F172A)
+val LightTextSecondary = Color(0xFF526074)
+val LightBorder = Color(0xFFD0DBE9)
+val LightBorderSubtle = Color(0xFFE4ECF5)
+val LightAccent = Color(0xFF2563EB)
+val LightOnAccent = Color(0xFFFFFFFF)
+val LightAccentContainer = Color(0xFFDCE9FF)
+val LightOnAccentContainer = Color(0xFF103178)
+val LightShadowTint = Color(0xFF1E3A5F)
 
-val EmeraldPrimaryLight = Color(0xFF059669)
-val EmeraldOnPrimaryLight = Color(0xFFFFFFFF)
-val EmeraldContainerLight = Color(0xFFD1FAE5)
-val EmeraldOnContainerLight = Color(0xFF064E3B)
+// --- Night Theme ("Obsidian Depth & Emerald Mist") ---
+val DarkBackground = Color(0xFF070B10)
+val DarkSurfaceLowest = Color(0xFF0B1017)
+val DarkSurfaceLow = Color(0xFF101720)
+val DarkSurface = Color(0xFF141D28)
+val DarkSurfaceContainer = Color(0xFF18222F)
+val DarkSurfaceHigh = Color(0xFF1F2B3B)
+val DarkSurfaceHighest = Color(0xFF273548)
+val DarkTextPrimary = Color(0xFFF3F6FA)
+val DarkTextSecondary = Color(0xFF94A3B8)
+val DarkBorder = Color(0xFF2A3748)
+val DarkBorderSubtle = Color(0xFF1E2938)
+val DarkAccent = Color(0xFF36D6AE)
+val DarkOnAccent = Color(0xFF032E24)
+val DarkAccentContainer = Color(0xFF0D3D33)
+val DarkOnAccentContainer = Color(0xFFA7F3D0)
+val DarkShadowTint = Color(0xFF000000)
 
-val CyanSecondaryLight = Color(0xFF0284C7)
-val CyanOnSecondaryLight = Color(0xFFFFFFFF)
-val CyanContainerLight = Color(0xFFE0F2FE)
-val CyanOnContainerLight = Color(0xFF0C4A6E)
+// --- Semantic Status & Private Mode Colors ---
+val StatusErrorLight = Color(0xFFDC2626)
+val StatusErrorContainerLight = Color(0xFFFEE2E2)
+val StatusOnErrorContainerLight = Color(0xFF7F1D1D)
 
-val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF475569)
+val StatusErrorDark = Color(0xFFF87171)
+val StatusErrorContainerDark = Color(0xFF3F1217)
+val StatusOnErrorContainerDark = Color(0xFFFECACA)
+
+val StatusSuccessLight = Color(0xFF059669)
+val StatusSuccessContainerLight = Color(0xFFD1FAE5)
+val StatusOnSuccessContainerLight = Color(0xFF064E3B)
+
+val StatusSuccessDark = Color(0xFF34D399)
+val StatusSuccessContainerDark = Color(0xFF0A362B)
+val StatusOnSuccessContainerDark = Color(0xFFA7F3D0)
+
+val StatusWarningLight = Color(0xFFD97706)
+val StatusWarningContainerLight = Color(0xFFFEF3C7)
+val StatusOnWarningContainerLight = Color(0xFF78350F)
+
+val StatusWarningDark = Color(0xFFFBBF24)
+val StatusWarningContainerDark = Color(0xFF3B2808)
+val StatusOnWarningContainerDark = Color(0xFFFDE68A)
+
+val PrivateAccentLight = Color(0xFF7C3AED)
+val PrivateContainerLight = Color(0xFFEDE9FE)
+val PrivateOnContainerLight = Color(0xFF4C1D95)
+
+val PrivateAccentDark = Color(0xFFA78BFA)
+val PrivateContainerDark = Color(0xFF251B45)
+val PrivateOnContainerDark = Color(0xFFDDD6FE)

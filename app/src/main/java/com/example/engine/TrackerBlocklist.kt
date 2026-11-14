@@ -9,23 +9,34 @@ import java.io.InputStreamReader
  * Loads the 3,520+ domain `pgl_domains.txt` tracker blocklist from assets
  * and matches exact hosts as well as subdomains.
  */
-class TrackerBlocklist(context: Context) {
+class TrackerBlocklist private constructor(
+    private val loader: () -> Set<String>,
+) {
+    constructor(context: Context) : this({ loadFromAssets(context.applicationContext) })
 
-    private val domains: Set<String> by lazy {
-        val set = HashSet<String>(4096)
-        runCatching {
-            context.assets.open("pgl_domains.txt").use { stream ->
-                BufferedReader(InputStreamReader(stream)).useLines { lines ->
-                    lines.forEach { raw ->
-                        val domain = raw.trim().lowercase()
-                        if (domain.isNotEmpty() && !domain.startsWith("#")) {
-                            set.add(domain)
+    constructor(domains: Set<String>) : this({
+        domains.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toHashSet()
+    })
+
+    private val domains: Set<String> by lazy(loader)
+
+    private companion object {
+        fun loadFromAssets(context: Context): Set<String> {
+            val set = HashSet<String>(4096)
+            runCatching {
+                context.assets.open("pgl_domains.txt").use { stream ->
+                    BufferedReader(InputStreamReader(stream)).useLines { lines ->
+                        lines.forEach { raw ->
+                            val domain = raw.trim().lowercase()
+                            if (domain.isNotEmpty() && !domain.startsWith("#")) {
+                                set.add(domain)
+                            }
                         }
                     }
                 }
             }
+            return set
         }
-        set
     }
 
     fun domainCount(): Int = domains.size

@@ -4,6 +4,8 @@ import com.example.data.ObscuraSettings
 import com.example.data.ScrapeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.ConnectionPool
+import okhttp3.Dispatcher
 import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -29,6 +31,16 @@ class ObscuraHttpClient(
     private val robotsCache: RobotsCache,
 ) {
 
+    private val baseClient: OkHttpClient = OkHttpClient.Builder()
+        .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
+        .dispatcher(Dispatcher().apply {
+            maxRequests = 32
+            maxRequestsPerHost = 8
+        })
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
+
     fun normalizeUrl(raw: String): String {
         val trimmed = raw.trim()
         if (trimmed.isEmpty()) return "https://example.com"
@@ -43,14 +55,15 @@ class ObscuraHttpClient(
         }
     }
 
-    private fun buildClient(settings: ObscuraSettings): OkHttpClient {
-        val timeoutSec = settings.timeoutSeconds.coerceIn(5, 120).toLong()
-        val builder = OkHttpClient.Builder()
+    internal fun configuredClient(
+        settings: ObscuraSettings,
+        timeoutSecondsOverride: Int? = null,
+    ): OkHttpClient {
+        val timeoutSec = (timeoutSecondsOverride ?: settings.timeoutSeconds).coerceIn(5, 120).toLong()
+        val builder = baseClient.newBuilder()
             .connectTimeout(timeoutSec, TimeUnit.SECONDS)
             .readTimeout(timeoutSec, TimeUnit.SECONDS)
             .writeTimeout(timeoutSec, TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
 
         if (!settings.allowPrivateNetwork) {
             builder.dns(object : Dns {
@@ -108,7 +121,7 @@ class ObscuraHttpClient(
         if (!robotsCache.contains(origin)) {
             val robotsUrl = "$origin/robots.txt"
             runCatching {
-                val client = buildClient(settings)
+                val client = configuredClient(settings)
                 val req = Request.Builder()
                     .url(robotsUrl)
                     .header("User-Agent", userAgent)
@@ -191,7 +204,7 @@ class ObscuraHttpClient(
         )
 
         return@withContext try {
-            val client = buildClient(settings)
+            val client = configuredClient(settings)
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", userAgent)
@@ -222,6 +235,96 @@ class ObscuraHttpClient(
                 error = e.message ?: "Request failed",
             )
         }
+    }
+
+    internal fun fetchHeadSnippet(
+        rawUrl: String,
+        settings: ObscuraSettings,
+        maxBytes: Int = 96 * 1024,
+    ): Pair<String, String>? {
+        val url = normalizeUrl(rawUrl)
+        val ssrf = SsrfGuard.validateUrl(url, settings.allowPrivateNetwork)
+        if (!ssrf.allowed) return null
+
+        val userAgent = BrowserProfiles.effectiveUserAgent(
+            settings.selectedProfileIndex,
+            settings.customUserAgent,
+        )
+        return runCatching {
+            val client = configuredClient(settings, timeoutSecondsOverride = 8)
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", userAgent)
+                .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@runCatching null
+                val body = response.body ?: return@runCatching null
+                val contentType = response.header("Content-Type").orEmpty().lowercase()
+                if (contentType.isNotEmpty() && !contentType.contains("html") && !contentType.contains("xml")) {
+                    return@runCatching null
+                }
+                val source = body.byteStream()
+                val buffer = ByteArray(4096)
+                val out = java.io.ByteArrayOutputStream()
+                var total = 0
+                while (total < maxBytes) {
+                    val read = source.read(buffer, 0, minOf(buffer.size, maxBytes - total))
+                    if (read <= 0) break
+                    out.write(buffer, 0, read)
+                    total += read
+                    val partial = out.toString(Charsets.UTF_8.name())
+                    if (partial.contains("</head>", ignoreCase = true)) {
+                        return@runCatching response.request.url.toString() to partial
+                    }
+                }
+                response.request.url.toString() to out.toString(Charsets.UTF_8.name())
+            }
+        }.getOrNull()
+    }
+
+    internal fun fetchBinaryBytes(
+        rawUrl: String,
+        settings: ObscuraSettings,
+        maxBytes: Int = 512 * 1024,
+    ): ByteArray? {
+        val url = normalizeUrl(rawUrl)
+        val ssrf = SsrfGuard.validateUrl(url, settings.allowPrivateNetwork)
+        if (!ssrf.allowed) return null
+
+        val userAgent = BrowserProfiles.effectiveUserAgent(
+            settings.selectedProfileIndex,
+            settings.customUserAgent,
+        )
+        return runCatching {
+            val client = configuredClient(settings, timeoutSecondsOverride = 8)
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", userAgent)
+                .header("Accept", "image/png,image/webp,image/x-icon,image/vnd.microsoft.icon,image/*,*/*;q=0.5")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@runCatching null
+                val contentType = response.header("Content-Type").orEmpty().lowercase()
+                if (contentType.contains("text/html") || contentType.contains("svg")) {
+                    return@runCatching null
+                }
+                val body = response.body ?: return@runCatching null
+                val declaredLen = body.contentLength()
+                if (declaredLen > maxBytes) return@runCatching null
+                val stream = body.byteStream()
+                val buffer = ByteArray(4096)
+                val out = java.io.ByteArrayOutputStream()
+                var total = 0
+                while (total < maxBytes) {
+                    val read = stream.read(buffer, 0, minOf(buffer.size, maxBytes - total))
+                    if (read <= 0) break
+                    out.write(buffer, 0, read)
+                    total += read
+                }
+                if (total == 0) null else out.toByteArray()
+            }
+        }.getOrNull()
     }
 
     fun extractTitle(html: String): String {

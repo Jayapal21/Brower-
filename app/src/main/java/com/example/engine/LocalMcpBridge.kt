@@ -35,14 +35,17 @@ class LocalMcpBridge(
     private var serverSocket: ServerSocket? = null
     private var acceptJob: Job? = null
     private var requestCount = 0
+    private var lastPort = 9222
     private val json = Json { ignoreUnknownKeys = true }
 
     fun start(port: Int) {
         stop()
+        lastPort = port
         try {
             val loopback = InetAddress.getByName("127.0.0.1")
             val socket = ServerSocket(port, 16, loopback)
             serverSocket = socket
+            lastPort = socket.localPort
             requestCount = 0
             onStateChange(true, socket.localPort, 0, "Listening on 127.0.0.1:${socket.localPort}", null)
 
@@ -62,7 +65,7 @@ class LocalMcpBridge(
         acceptJob = null
         runCatching { serverSocket?.close() }
         serverSocket = null
-        onStateChange(false, 9222, requestCount, null, null)
+        onStateChange(false, lastPort, requestCount, null, null)
     }
 
     private suspend fun handleClient(socket: Socket, port: Int) {

@@ -1,458 +1,918 @@
 package com.example.ui.screens
 
-import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledIconButton
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import com.example.R
+import com.example.data.AddressSuggestion
+import com.example.data.BookmarkItem
+import com.example.data.BrowserDestination
+import com.example.data.BrowserWorkspaceState
+import com.example.data.HistoryItem
 import com.example.data.ObscuraSettings
-import com.example.ui.BrowserUiState
+import com.example.data.WebsiteShortcut
+import com.example.motion.rememberDynamicSpringValue
 import com.example.ui.ObscuraViewModel
+import com.example.ui.components.DomainMonogramBadge
 import com.example.ui.components.StatusPill
+import com.example.ui.components.TactileButton
+import com.example.ui.components.TactileCardSurface
+import com.example.ui.components.TactileIconButton
+import com.example.ui.components.TactileOutlinedButton
+import com.example.ui.components.TactileTextButton
+import com.example.ui.components.obscuraDepthShadow
+import com.example.ui.components.obscuraRimBorder
 import com.example.ui.theme.JetBrainsMonoFamily
-import java.io.ByteArrayInputStream
+import com.example.ui.theme.LocalMotionPolicy
+import com.example.ui.theme.LocalObscuraColors
+import com.example.ui.theme.ObscuraElevation
+import com.example.ui.theme.ObscuraMotionTokens
+import com.example.ui.theme.ObscuraRadii
+import com.example.ui.theme.ObscuraSizing
+import com.example.ui.theme.ObscuraSpacing
+import com.example.ui.theme.pressScale
+import java.net.URI
+import kotlin.math.roundToInt
 
-private val QUICK_URLS = listOf(
-    "example.com" to "https://example.com",
-    "Hacker News" to "https://news.ycombinator.com",
-    "Quotes" to "https://quotes.toscrape.com",
-    "Wikipedia" to "https://en.wikipedia.org/wiki/Web_scraping",
-)
-
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun BrowserScreen(
     viewModel: ObscuraViewModel,
-    state: BrowserUiState,
+    workspace: BrowserWorkspaceState,
     settings: ObscuraSettings,
-    isVisible: Boolean,
-    obtainWebView: (android.content.Context) -> WebView,
+    shortcuts: List<WebsiteShortcut>,
+    bookmarks: List<BookmarkItem>,
+    history: List<HistoryItem>,
+    suggestions: List<AddressSuggestion>,
+    shortcutFavicons: Map<String, Bitmap> = emptyMap(),
+    pullRefreshProgress: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
+    val clipboard = LocalClipboardManager.current
+    val policy = LocalMotionPolicy.current
+    val extColors = LocalObscuraColors.current
+    val activeTab = workspace.activeTab
+    val showToolbar = workspace.toolbarVisible || activeTab.isHome || workspace.isFindInPageOpen
 
-    Column(
+    val tabAccent = if (activeTab.isPrivate) extColors.privateAccent else MaterialTheme.colorScheme.primary
+    val tabAccentContainer = if (activeTab.isPrivate) extColors.privateContainer else MaterialTheme.colorScheme.primaryContainer
+    val tabOnAccentContainer = if (activeTab.isPrivate) extColors.onPrivateContainer else MaterialTheme.colorScheme.onPrimaryContainer
+
+    val hostLabel = remember(activeTab.url, activeTab.isHome) {
+        if (activeTab.isHome) {
+            "Search or enter URL"
+        } else {
+            runCatching { URI(activeTab.url).host?.removePrefix("www.") ?: activeTab.url }
+                .getOrDefault(activeTab.url)
+        }
+    }
+
+    val toolbarSpringFraction by rememberDynamicSpringValue(
+        targetValue = if (showToolbar) 1f else 0f,
+        stiffness = policy.toolbarSpring.stiffness,
+        dampingRatio = policy.toolbarSpring.dampingRatio,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "toolbar_visibility_spring",
+    )
+
+    val forwardFraction by rememberDynamicSpringValue(
+        targetValue = if (activeTab.canGoForward && !activeTab.isHome) 1f else 0f,
+        stiffness = policy.toolbarSpring.stiffness,
+        dampingRatio = policy.toolbarSpring.dampingRatio,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "toolbar_forward_spring",
+    )
+
+    val findBarFraction by rememberDynamicSpringValue(
+        targetValue = if (workspace.isFindInPageOpen && !activeTab.isHome) 1f else 0f,
+        stiffness = policy.toolbarSpring.stiffness,
+        dampingRatio = policy.toolbarSpring.dampingRatio,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "find_bar_spring",
+    )
+
+    val animatedProgress by rememberDynamicSpringValue(
+        targetValue = (activeTab.progress / 100f).coerceIn(0.05f, 1f),
+        stiffness = SpringForce.STIFFNESS_LOW,
+        dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "toolbar_progress_spring",
+    )
+
+    val animatedPull by rememberDynamicSpringValue(
+        targetValue = pullRefreshProgress.coerceIn(0f, 1.3f),
+        stiffness = policy.toolbarSpring.stiffness,
+        dampingRatio = policy.toolbarSpring.dampingRatio,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "pull_refresh_spring",
+    )
+
+    val restorePillFraction by rememberDynamicSpringValue(
+        targetValue = if (!showToolbar && !activeTab.isHome) 1f else 0f,
+        stiffness = policy.toolbarSpring.stiffness,
+        dampingRatio = policy.toolbarSpring.dampingRatio,
+        minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+        key = "restore_pill_spring",
+    )
+
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
-        // Omnibox & Controls
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    OutlinedTextField(
-                        value = state.urlInput,
-                        onValueChange = viewModel::updateUrlInput,
-                        singleLine = true,
-                        placeholder = {
-                            Text(
-                                "https://example.com",
-                                fontFamily = JetBrainsMonoFamily,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (settings.stealthEnabled) Icons.Filled.Shield else Icons.Filled.Lock,
-                                contentDescription = null,
-                                tint = if (settings.stealthEnabled) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMonoFamily),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Uri,
-                            imeAction = ImeAction.Go,
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onGo = {
-                                focusManager.clearFocus()
-                                viewModel.navigateTo(state.urlInput)
-                            },
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("browser_url_input"),
-                    )
-
-                    FilledIconButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            viewModel.navigateTo(state.urlInput)
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("browser_go_button"),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = stringResource(R.string.cd_go),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(6.dp))
-
-                // Action bar + status pills
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = viewModel::goBack,
-                            enabled = state.canGoBack,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("browser_back_button"),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.cd_back),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = viewModel::goForward,
-                            enabled = state.canGoForward,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("browser_forward_button"),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowForward,
-                                contentDescription = stringResource(R.string.cd_forward),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = viewModel::reload,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("browser_reload_button"),
-                        ) {
-                            Icon(
-                                Icons.Outlined.Refresh,
-                                contentDescription = stringResource(R.string.cd_reload),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = viewModel::captureScreenshot,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("browser_screenshot_button"),
-                        ) {
-                            Icon(
-                                Icons.Outlined.CameraAlt,
-                                contentDescription = stringResource(R.string.cd_screenshot),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = { viewModel.exportPdf(context) },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("browser_pdf_button"),
-                        ) {
-                            Icon(
-                                Icons.Outlined.PictureAsPdf,
-                                contentDescription = stringResource(R.string.cd_pdf),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (state.lastLoadMs > 0) {
-                            StatusPill(
-                                text = "${state.lastLoadMs}ms",
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                        StatusPill(
-                            text = "${state.pageBlockedTrackers} blocked",
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            icon = Icons.Filled.Shield,
-                        )
-                    }
-                }
-
-                // Quick target chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    QUICK_URLS.forEach { (label, url) ->
-                        AssistChip(
-                            onClick = { viewModel.navigateTo(url) },
-                            label = {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                            },
-                            modifier = Modifier.testTag("quick_url_${label.lowercase().replace(' ', '_')}"),
-                        )
-                    }
-                }
-            }
-        }
-
-        AnimatedVisibility(visible = state.isLoading) {
-            LinearProgressIndicator(
-                progress = { (state.progress / 100f).coerceIn(0.05f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        // Security block banner (SSRF / Tracker / Robots)
-        if (state.blockedMessage != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Scroll-aware elevated translucent M3 top toolbar
+            if (toolbarSpringFraction > 0.01f || showToolbar) {
+                val clampedFraction = toolbarSpringFraction.coerceIn(0f, 1f)
                 Surface(
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Security,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(44.dp),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "Navigation Blocked by Obscura Policy",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = state.blockedMessage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = JetBrainsMonoFamily,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.navigateTo("https://example.com") },
-                            modifier = Modifier.testTag("blocked_fallback_button"),
-                        ) {
-                            Text("Load example.com")
-                        }
-                    }
-                }
-            }
-        } else {
-            // Keep WebView mounted so Extract/MCP always access the live DOM
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                AndroidView(
-                    factory = { ctx ->
-                        obtainWebView(ctx).also { webView ->
-                            viewModel.attachWebView(webView)
-                            viewModel.applyWebViewSettings(webView, settings)
-                        }
-                    },
-                    update = { webView ->
-                        viewModel.applyWebViewSettings(webView, settings)
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("obscura_webview"),
-                )
-            }
-        }
-
-        // Bottom active title bar
-        if (isVisible && state.pageTitle.isNotBlank()) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = policy.translucentChromeAlpha),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .clipToBounds()
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            val collapsedHeight = (placeable.height * clampedFraction).roundToInt()
+                            layout(placeable.width, collapsedHeight) {
+                                placeable.placeRelative(0, collapsedHeight - placeable.height)
+                            }
+                        }
+                        .graphicsLayer {
+                            alpha = clampedFraction
+                            translationY = (toolbarSpringFraction - 1f) * 14f
+                        },
                 ) {
-                    Text(
-                        text = state.pageTitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (settings.stealthEnabled) "STEALTH ON" else "STANDARD",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (settings.stealthEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
+                    Column {
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val showInlineHome = !activeTab.isHome && (maxWidth >= 400.dp || !activeTab.canGoForward)
+                            val homeFraction by rememberDynamicSpringValue(
+                                targetValue = if (showInlineHome) 1f else 0f,
+                                stiffness = policy.toolbarSpring.stiffness,
+                                dampingRatio = policy.toolbarSpring.dampingRatio,
+                                minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_SCALE,
+                                key = "toolbar_home_spring",
+                            )
 
-    // Screenshot Preview Dialog
-    state.screenshotBitmap?.let { bmp ->
-        Dialog(onDismissRequest = viewModel::dismissScreenshot) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Captured Page Screenshot",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        IconButton(onClick = viewModel::dismissScreenshot) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Close screenshot")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(ObscuraSizing.toolbarHeight)
+                                    .padding(horizontal = ObscuraSpacing.xs),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TactileIconButton(
+                                    onClick = {
+                                        if (!activeTab.isHome) {
+                                            viewModel.goBack()
+                                        }
+                                    },
+                                    icon = if (activeTab.isHome) Icons.Outlined.Home else Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription = if (activeTab.isHome) "Start page" else stringResource(R.string.cd_back),
+                                    enabled = !activeTab.isHome,
+                                    modifier = Modifier.testTag("browser_back_button"),
+                                )
+
+                                if (forwardFraction > 0.02f) {
+                                    val fwClamped = forwardFraction.coerceIn(0f, 1f)
+                                    Box(
+                                        modifier = Modifier
+                                            .clipToBounds()
+                                            .layout { measurable, constraints ->
+                                                val placeable = measurable.measure(constraints)
+                                                val width = (placeable.width * fwClamped).roundToInt()
+                                                layout(width, placeable.height) {
+                                                    placeable.placeRelative(0, 0)
+                                                }
+                                            }
+                                            .graphicsLayer {
+                                                alpha = fwClamped
+                                                scaleX = 0.85f + 0.15f * forwardFraction
+                                                scaleY = scaleX
+                                            },
+                                    ) {
+                                        TactileIconButton(
+                                            onClick = viewModel::goForward,
+                                            icon = Icons.AutoMirrored.Outlined.ArrowForward,
+                                            contentDescription = stringResource(R.string.cd_forward),
+                                            modifier = Modifier.testTag("browser_forward_button"),
+                                        )
+                                    }
+                                }
+
+                                // Soft Elevated M3 Address / Search Capsule
+                                val capsuleShape = RoundedCornerShape(ObscuraRadii.capsule)
+                                val addressInteraction = remember { MutableInteractionSource() }
+                                Surface(
+                                    shape = capsuleShape,
+                                    color = if (activeTab.isPrivate) {
+                                        tabAccentContainer.copy(alpha = 0.45f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    },
+                                    border = BorderStroke(
+                                        ObscuraSizing.borderHairline,
+                                        if (activeTab.isPrivate) tabAccent.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outlineVariant,
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(ObscuraSizing.addressCapsuleHeight)
+                                        .pressScale(addressInteraction, pressedScale = ObscuraMotionTokens.PRESSED_SCALE_CARD)
+                                        .clip(capsuleShape)
+                                        .semantics { contentDescription = "Address bar: $hostLabel" }
+                                        .clickable(
+                                            interactionSource = addressInteraction,
+                                            indication = ripple(),
+                                            role = Role.Button,
+                                            onClick = { viewModel.setAddressFocused(true) },
+                                        )
+                                        .testTag("browser_address_capsule"),
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(start = ObscuraSpacing.md, end = ObscuraSpacing.xxs),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            imageVector = when {
+                                                activeTab.isPrivate -> Icons.Outlined.VisibilityOff
+                                                settings.stealthEnabled -> Icons.Outlined.Shield
+                                                else -> Icons.Outlined.Lock
+                                            },
+                                            contentDescription = null,
+                                            tint = if (activeTab.isPrivate || settings.stealthEnabled) {
+                                                tabAccent
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.size(ObscuraSizing.iconSmall),
+                                        )
+                                        Spacer(Modifier.width(ObscuraSpacing.sm))
+                                        Text(
+                                            text = hostLabel,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (activeTab.isHome) {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurface
+                                            },
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        if (!activeTab.isHome && activeTab.blockedTrackers > 0) {
+                                            Surface(
+                                                shape = RoundedCornerShape(ObscuraRadii.pill),
+                                                color = tabAccentContainer,
+                                                modifier = Modifier.padding(end = ObscuraSpacing.xxs),
+                                            ) {
+                                                Text(
+                                                    text = "${activeTab.blockedTrackers}",
+                                                    fontFamily = JetBrainsMonoFamily,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = tabOnAccentContainer,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                )
+                                            }
+                                        }
+                                        if (!activeTab.isHome) {
+                                            TactileIconButton(
+                                                onClick = viewModel::reloadOrStop,
+                                                icon = if (activeTab.isLoading) Icons.Outlined.Close else Icons.Outlined.Refresh,
+                                                contentDescription = if (activeTab.isLoading) "Stop loading" else stringResource(R.string.cd_reload),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.testTag("browser_reload_button"),
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.width(ObscuraSpacing.xxs))
+
+                                if (homeFraction > 0.02f) {
+                                    val homeClamped = homeFraction.coerceIn(0f, 1f)
+                                    Box(
+                                        modifier = Modifier
+                                            .clipToBounds()
+                                            .layout { measurable, constraints ->
+                                                val placeable = measurable.measure(constraints)
+                                                val width = (placeable.width * homeClamped).roundToInt()
+                                                layout(width, placeable.height) {
+                                                    placeable.placeRelative(0, 0)
+                                                }
+                                            }
+                                            .graphicsLayer {
+                                                alpha = homeClamped
+                                                scaleX = 0.85f + 0.15f * homeFraction
+                                                scaleY = scaleX
+                                            },
+                                    ) {
+                                        TactileIconButton(
+                                            onClick = { viewModel.goHome() },
+                                            icon = Icons.Outlined.Home,
+                                            contentDescription = "Home",
+                                            modifier = Modifier.testTag("browser_home_button"),
+                                        )
+                                    }
+                                }
+
+                                // Tab Switcher Badge Button (48dp touch target)
+                                val tabBtnInteraction = remember { MutableInteractionSource() }
+                                val tabCount = workspace.tabs.size
+                                Box(
+                                    modifier = Modifier
+                                        .size(ObscuraSizing.minTouchTarget)
+                                        .pressScale(tabBtnInteraction, pressedScale = ObscuraMotionTokens.PRESSED_SCALE_BUTTON)
+                                        .clip(RoundedCornerShape(ObscuraRadii.sm))
+                                        .semantics {
+                                            contentDescription = "$tabCount open ${if (tabCount == 1) "tab" else "tabs"}, switch tabs"
+                                        }
+                                        .clickable(
+                                            interactionSource = tabBtnInteraction,
+                                            indication = ripple(bounded = false, radius = 22.dp),
+                                            role = Role.Button,
+                                            onClick = { viewModel.setTabSwitcherOpen(true) },
+                                        )
+                                        .testTag("browser_tabs_button"),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (activeTab.isPrivate) tabAccentContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        border = BorderStroke(
+                                            1.6.dp,
+                                            if (activeTab.isPrivate) tabAccent else MaterialTheme.colorScheme.onSurface,
+                                        ),
+                                        modifier = Modifier.size(23.dp),
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = tabCount.coerceAtMost(99).toString(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (activeTab.isPrivate) tabOnAccentContainer else MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                TactileIconButton(
+                                    onClick = { viewModel.setMenuOpen(true) },
+                                    icon = Icons.Outlined.MoreVert,
+                                    contentDescription = "Browser menu",
+                                    modifier = Modifier.testTag("browser_menu_button"),
+                                )
+                            }
+                        }
+
+                        if (activeTab.isLoading) {
+                            LinearProgressIndicator(
+                                progress = { animatedProgress.coerceIn(0f, 1f) },
+                                color = tabAccent,
+                                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.5.dp),
+                            )
+                        } else {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = "Page screenshot preview",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(340.dp)
-                            .clip(MaterialTheme.shapes.medium),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        TextButton(onClick = viewModel::dismissScreenshot) {
-                            Text("Dismiss")
+                }
+            }
+
+            // Collapsible Find in Page Bar driven by SpringAnimation
+            if (findBarFraction > 0.01f) {
+                val findClamped = findBarFraction.coerceIn(0f, 1f)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clipToBounds()
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            val height = (placeable.height * findClamped).roundToInt()
+                            layout(placeable.width, height) {
+                                placeable.placeRelative(0, height - placeable.height)
+                            }
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
-                            onClick = { viewModel.shareScreenshot(bmp) },
-                            modifier = Modifier.testTag("share_screenshot_button"),
+                        .graphicsLayer {
+                            alpha = findClamped
+                            translationY = (findBarFraction - 1f) * 10f
+                        },
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = ObscuraSpacing.md, vertical = ObscuraSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Share PNG")
+                            Surface(
+                                shape = RoundedCornerShape(ObscuraRadii.capsule),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                border = BorderStroke(ObscuraSizing.borderHairline, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = ObscuraSpacing.md, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(ObscuraSizing.iconSmall),
+                                    )
+                                    Spacer(Modifier.width(ObscuraSpacing.sm))
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        if (workspace.findQuery.isEmpty()) {
+                                            Text(
+                                                text = "Find in page",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        BasicTextField(
+                                            value = workspace.findQuery,
+                                            onValueChange = viewModel::updateFindQuery,
+                                            singleLine = true,
+                                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                            ),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .testTag("find_in_page_input"),
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.width(ObscuraSpacing.sm))
+                            Surface(
+                                shape = RoundedCornerShape(ObscuraRadii.pill),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            ) {
+                                Text(
+                                    text = "${workspace.findMatchIndex}/${workspace.findTotalMatches}",
+                                    fontFamily = JetBrainsMonoFamily,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
+                            TactileIconButton(
+                                onClick = { viewModel.findNext(false) },
+                                icon = Icons.Outlined.KeyboardArrowUp,
+                                contentDescription = "Previous match",
+                            )
+                            TactileIconButton(
+                                onClick = { viewModel.findNext(true) },
+                                icon = Icons.Outlined.KeyboardArrowDown,
+                                contentDescription = "Next match",
+                            )
+                            TactileIconButton(
+                                onClick = { viewModel.toggleFindInPage(false) },
+                                icon = Icons.Outlined.Close,
+                                contentDescription = "Close find",
+                            )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
+            }
+
+            // Primary Viewport: Home Start Page | Policy / Connection Card | Live WebView
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when {
+                    activeTab.isHome -> {
+                        BrowserHomeView(
+                            shortcuts = shortcuts,
+                            favicons = shortcutFavicons,
+                            bookmarks = bookmarks,
+                            recentHistory = history,
+                            settings = settings,
+                            isPrivateTab = activeTab.isPrivate,
+                            trackerRuleCount = viewModel.trackerBlocklist.domainCount(),
+                            onSearchClick = { viewModel.setAddressFocused(true) },
+                            onOpenUrl = viewModel::navigateActiveTab,
+                            onAddShortcut = viewModel::addShortcut,
+                            onRemoveShortcut = viewModel::removeShortcut,
+                            onOpenBookmarks = { viewModel.openDestination(BrowserDestination.BOOKMARKS) },
+                            onOpenHistory = { viewModel.openDestination(BrowserDestination.HISTORY) },
+                        )
+                    }
+                    activeTab.blockedMessage != null -> {
+                        val isConnectionError = activeTab.blockedMessage.startsWith("Connection failed", ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(ObscuraSpacing.xxl),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val cardShape = MaterialTheme.shapes.large
+                            Surface(
+                                shape = cardShape,
+                                color = MaterialTheme.colorScheme.surface,
+                                border = obscuraRimBorder(),
+                                modifier = Modifier
+                                    .widthIn(max = 480.dp)
+                                    .fillMaxWidth()
+                                    .obscuraDepthShadow(ObscuraElevation.card, cardShape),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(ObscuraSpacing.xxl),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    DomainMonogramBadge(
+                                        icon = if (isConnectionError) Icons.Outlined.WifiOff else Icons.Outlined.Security,
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                        size = 56.dp,
+                                    )
+                                    Spacer(Modifier.height(ObscuraSpacing.md))
+                                    Text(
+                                        text = if (isConnectionError) "Page Unavailable" else "Navigation Blocked",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Spacer(Modifier.height(ObscuraSpacing.sm))
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                        border = BorderStroke(ObscuraSizing.borderHairline, MaterialTheme.colorScheme.outlineVariant),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Text(
+                                            text = activeTab.blockedMessage,
+                                            fontFamily = JetBrainsMonoFamily,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(ObscuraSpacing.md),
+                                        )
+                                    }
+                                    Spacer(Modifier.height(ObscuraSpacing.lg))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(ObscuraSpacing.sm)) {
+                                        if (isConnectionError) {
+                                            TactileOutlinedButton(
+                                                onClick = { viewModel.retryActiveTab() },
+                                                modifier = Modifier.testTag("error_retry_button"),
+                                            ) {
+                                                Text("Retry")
+                                            }
+                                        }
+                                        TactileButton(
+                                            onClick = { viewModel.goHome() },
+                                            modifier = Modifier.testTag("blocked_return_home"),
+                                        ) {
+                                            Text("Return to Start Page")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        key(activeTab.id) {
+                            var attachedWebView by remember { mutableStateOf<WebView?>(null) }
+                            LaunchedEffect(activeTab.id, settings, attachedWebView) {
+                                attachedWebView?.let { wv ->
+                                    viewModel.applyWebViewSettings(wv, settings)
+                                }
+                            }
+                            AndroidView(
+                                factory = { ctx ->
+                                    viewModel.getOrCreateWebView(activeTab.id, ctx).also { wv ->
+                                        (wv.parent as? ViewGroup)?.removeView(wv)
+                                        attachedWebView = wv
+                                    }
+                                },
+                                update = { wv ->
+                                    if (attachedWebView !== wv) attachedWebView = wv
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("obscura_webview"),
+                            )
+                        }
+
+                        // Pull-to-refresh floating pill driven by SpringAnimation
+                        if (animatedPull > 0.04f && !activeTab.isLoading) {
+                            val readyToRelease = animatedPull >= 1f
+                            val pillShape = RoundedCornerShape(ObscuraRadii.pill)
+                            Surface(
+                                shape = pillShape,
+                                color = if (readyToRelease) {
+                                    tabAccentContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                border = obscuraRimBorder(active = readyToRelease, activeColor = tabAccent),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = ObscuraSpacing.md)
+                                    .obscuraDepthShadow(ObscuraElevation.floating, pillShape)
+                                    .graphicsLayer {
+                                        translationY = (animatedPull * 28f).coerceAtMost(42f)
+                                        alpha = (animatedPull * 1.4f).coerceIn(0f, 1f)
+                                        val s = (0.9f + 0.1f * animatedPull.coerceAtMost(1.1f))
+                                        scaleX = s
+                                        scaleY = s
+                                    },
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Refresh,
+                                        contentDescription = null,
+                                        tint = if (readyToRelease) tabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .graphicsLayer {
+                                                rotationZ = animatedPull * 240f
+                                            },
+                                    )
+                                    Text(
+                                        text = if (readyToRelease) "Release to reload" else "Pull to reload",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (readyToRelease) tabOnAccentContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Floating contextual restore pill driven by SpringAnimation
+                if (restorePillFraction > 0.02f) {
+                    val pillClamped = restorePillFraction.coerceIn(0f, 1f)
+                    val pillShape = RoundedCornerShape(ObscuraRadii.pill)
+                    TactileCardSurface(
+                        onClick = { viewModel.setToolbarVisible(true) },
+                        shape = pillShape,
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = policy.translucentChromeAlpha),
+                        baseElevation = ObscuraElevation.floating,
+                        accessibilityLabel = "Show browser toolbar for $hostLabel",
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = ObscuraSpacing.sm)
+                            .height(ObscuraSizing.minTouchTarget)
+                            .graphicsLayer {
+                                alpha = pillClamped
+                                translationY = (1f - restorePillFraction) * -48f
+                                val s = (0.9f + 0.1f * restorePillFraction).coerceAtLeast(0.5f)
+                                scaleX = s
+                                scaleY = s
+                            }
+                            .testTag("restore_toolbar_pill"),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    activeTab.isPrivate -> Icons.Outlined.VisibilityOff
+                                    settings.stealthEnabled -> Icons.Outlined.Shield
+                                    else -> Icons.Outlined.Lock
+                                },
+                                contentDescription = null,
+                                tint = tabAccent,
+                                modifier = Modifier.size(15.dp),
+                            )
+                            Text(
+                                text = hostLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
             }
         }
-    }
 
-    // Auto-sync initial settings change
-    LaunchedEffect(settings.selectedProfileIndex, settings.customUserAgent) {
-        // Trigger recomposition update block on WebView
+        // Focused Address Bar & Real-time Search Suggestions Overlay
+        AddressFocusOverlay(
+            visible = workspace.isAddressFocused,
+            query = workspace.urlInput,
+            suggestions = suggestions,
+            searchEngineName = settings.searchEngine.label,
+            onQueryChange = viewModel::updateUrlInput,
+            onSubmit = viewModel::navigateActiveTab,
+            onShareUrl = { url -> viewModel.shareText(activeTab.title.ifEmpty { url }, url) },
+            onCopiedUrl = { viewModel.showStatusBanner("URL copied to clipboard") },
+            onDismiss = { viewModel.setAddressFocused(false) },
+        )
+
+        // Multi-Tab Switcher Overlay
+        TabSwitcherOverlay(
+            visible = workspace.isTabSwitcherOpen,
+            tabs = workspace.tabs,
+            activeTabId = workspace.activeTabId,
+            onSelectTab = viewModel::switchTab,
+            onCloseTab = viewModel::closeTab,
+            onNewTab = { isPrivate -> viewModel.openNewTab(isPrivate = isPrivate) },
+            onCloseAll = viewModel::closeAllTabs,
+            onDismiss = { viewModel.setTabSwitcherOpen(false) },
+        )
+
+        // Unified Browser Action Menu Bottom Sheet
+        BrowserActionSheet(
+            visible = workspace.isMenuOpen,
+            settings = settings,
+            isBookmarked = viewModel.isCurrentPageBookmarked(),
+            isOnHome = activeTab.isHome,
+            onDismiss = { viewModel.setMenuOpen(false) },
+            onToggleStealth = {
+                viewModel.updateSettings { it.copy(stealthEnabled = !it.stealthEnabled) }
+            },
+            onToggleTheme = {
+                viewModel.updateSettings { it.copy(darkTheme = !it.darkTheme) }
+            },
+            onToggleDesktop = {
+                viewModel.updateSettings { it.copy(desktopMode = !it.desktopMode) }
+            },
+            onGoHome = { viewModel.goHome() },
+            onNewTab = { viewModel.openNewTab() },
+            onNewPrivateTab = { viewModel.openNewTab(isPrivate = true) },
+            onToggleBookmark = {
+                viewModel.toggleBookmarkCurrentPage()
+                viewModel.setMenuOpen(false)
+            },
+            onCopyUrl = {
+                clipboard.setText(AnnotatedString(activeTab.url))
+                viewModel.setMenuOpen(false)
+                viewModel.showStatusBanner("URL copied to clipboard")
+            },
+            onSharePage = {
+                viewModel.setMenuOpen(false)
+                viewModel.shareText(activeTab.title, activeTab.url)
+            },
+            onScreenshot = viewModel::captureScreenshot,
+            onExportPdf = { viewModel.exportPdf(context) },
+            onFindInPage = { viewModel.toggleFindInPage(true) },
+            onNavigateDestination = viewModel::openDestination,
+        )
+
+        // Captured Screenshot Dialog
+        (workspace.overlayMode as? com.example.data.BrowserOverlayMode.ScreenshotPreview)?.let { preview ->
+            val bmp = preview.bitmap
+            Dialog(onDismissRequest = viewModel::dismissScreenshot) {
+                val dialogShape = MaterialTheme.shapes.large
+                Surface(
+                    shape = dialogShape,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = obscuraRimBorder(),
+                    modifier = Modifier.obscuraDepthShadow(ObscuraElevation.floating, dialogShape),
+                ) {
+                    Column(modifier = Modifier.padding(ObscuraSpacing.lg)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Captured Screenshot", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text = "${bmp.width} × ${bmp.height} px · $hostLabel",
+                                    fontFamily = JetBrainsMonoFamily,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            TactileIconButton(
+                                onClick = viewModel::dismissScreenshot,
+                                icon = Icons.Outlined.Close,
+                                contentDescription = "Close",
+                            )
+                        }
+                        Spacer(Modifier.height(ObscuraSpacing.sm))
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            border = BorderStroke(ObscuraSizing.borderHairline, MaterialTheme.colorScheme.outlineVariant),
+                        ) {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = "Captured page screenshot",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp)
+                                    .clip(MaterialTheme.shapes.medium),
+                            )
+                        }
+                        Spacer(Modifier.height(ObscuraSpacing.md))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            TactileTextButton(onClick = viewModel::dismissScreenshot) {
+                                Text("Dismiss")
+                            }
+                            Spacer(Modifier.width(ObscuraSpacing.sm))
+                            TactileButton(
+                                onClick = { viewModel.shareScreenshot(bmp) },
+                                modifier = Modifier.testTag("share_screenshot_button"),
+                            ) {
+                                Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(ObscuraSpacing.xs))
+                                Text("Share PNG")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

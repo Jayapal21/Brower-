@@ -1,15 +1,139 @@
 package com.example.data
 
+import android.graphics.Bitmap
+import com.example.motion.MotionModePreference
 import kotlinx.serialization.Serializable
 
-@Serializable
-enum class AppTab(val label: String) {
-    Browser("Browser"),
-    Extract("Extract"),
-    Scrape("Scrape"),
-    Network("Network"),
-    Stealth("Stealth"),
+/**
+ * Contextual workspace views opened from the browser menu or toolbar (no bottom navigation).
+ */
+enum class BrowserDestination {
+    BROWSER,
+    BOOKMARKS,
+    DOWNLOADS,
+    HISTORY,
+    EXTRACT,
+    SCRAPE,
+    NETWORK,
+    SETTINGS,
 }
+
+enum class SearchEngineOption(val label: String, val searchUrlTemplate: String) {
+    DUCKDUCKGO("DuckDuckGo", "https://duckduckgo.com/?q="),
+    GOOGLE("Google", "https://www.google.com/search?q="),
+    STARTPAGE("Startpage", "https://www.startpage.com/sp/search?query="),
+    BRAVE("Brave Search", "https://search.brave.com/search?q="),
+}
+
+data class BrowserTabState(
+    val id: String,
+    val url: String = "about:home",
+    val title: String = "Start Page",
+    val isHome: Boolean = true,
+    val isPrivate: Boolean = false,
+    val isLoading: Boolean = false,
+    val progress: Int = 0,
+    val canGoBack: Boolean = false,
+    val canGoForward: Boolean = false,
+    val lastLoadMs: Long = 0L,
+    val blockedTrackers: Int = 0,
+    val blockedMessage: String? = null,
+)
+
+sealed interface BrowserOverlayMode {
+    data object None : BrowserOverlayMode
+    data object AddressFocus : BrowserOverlayMode
+    data object TabSwitcher : BrowserOverlayMode
+    data object ActionSheet : BrowserOverlayMode
+    data object FindInPage : BrowserOverlayMode
+    data class ScreenshotPreview(val bitmap: Bitmap) : BrowserOverlayMode
+}
+
+data class BrowserWorkspaceState(
+    val tabs: List<BrowserTabState> = listOf(BrowserTabState(id = "tab-1")),
+    val activeTabId: String = "tab-1",
+    val urlInput: String = "",
+    val overlayMode: BrowserOverlayMode = BrowserOverlayMode.None,
+    val findQuery: String = "",
+    val findMatchIndex: Int = 0,
+    val findTotalMatches: Int = 0,
+    val toolbarVisible: Boolean = true,
+) {
+    val activeTab: BrowserTabState
+        get() = tabs.firstOrNull { it.id == activeTabId } ?: tabs.first()
+
+    val isAddressFocused: Boolean
+        get() = overlayMode is BrowserOverlayMode.AddressFocus
+
+    val isTabSwitcherOpen: Boolean
+        get() = overlayMode is BrowserOverlayMode.TabSwitcher
+
+    val isMenuOpen: Boolean
+        get() = overlayMode is BrowserOverlayMode.ActionSheet
+
+    val isFindInPageOpen: Boolean
+        get() = overlayMode is BrowserOverlayMode.FindInPage
+
+    val screenshotBitmap: Bitmap?
+        get() = (overlayMode as? BrowserOverlayMode.ScreenshotPreview)?.bitmap
+}
+
+@Serializable
+data class BookmarkItem(
+    val id: String,
+    val title: String,
+    val url: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Serializable
+data class HistoryItem(
+    val id: String,
+    val title: String,
+    val url: String,
+    val visitedAt: Long = System.currentTimeMillis(),
+)
+
+@Serializable
+data class WebsiteShortcut(
+    val id: String,
+    val title: String,
+    val url: String,
+    val badge: String,
+)
+
+enum class DownloadStatus {
+    IN_PROGRESS,
+    COMPLETED,
+    FAILED,
+}
+
+@Serializable
+data class DownloadItem(
+    val id: Long,
+    val fileName: String,
+    val url: String,
+    val mimeType: String,
+    val sizeBytes: Long = 0L,
+    val status: DownloadStatus = DownloadStatus.IN_PROGRESS,
+    val createdAt: Long = System.currentTimeMillis(),
+    val localUri: String? = null,
+)
+
+enum class SuggestionKind {
+    BOOKMARK,
+    HISTORY,
+    SHORTCUT,
+    DIRECT_URL,
+    WEB_SEARCH,
+}
+
+data class AddressSuggestion(
+    val title: String,
+    val subtitle: String,
+    val targetUrl: String,
+    val kind: SuggestionKind,
+)
 
 enum class DumpFormat(val label: String, val cliFlag: String) {
     MARKDOWN("Markdown", "markdown"),
@@ -96,6 +220,7 @@ data class ObscuraSettings(
     val stealthEnabled: Boolean = true,
     val allowPrivateNetwork: Boolean = false,
     val obeyRobots: Boolean = false,
+    val desktopMode: Boolean = false,
     val selectedProfileIndex: Int = 0,
     val customUserAgent: String = "",
     val proxyUrl: String = "",
@@ -103,6 +228,10 @@ data class ObscuraSettings(
     val waitUntil: WaitUntilMode = WaitUntilMode.LOAD,
     val darkTheme: Boolean = true,
     val bridgePort: Int = 9222,
+    val searchEngine: SearchEngineOption = SearchEngineOption.DUCKDUCKGO,
+    val motionMode: MotionModePreference = MotionModePreference.AUTO,
+    val springStiffness: Float = 1100f,
+    val springDamping: Float = 0.85f,
 )
 
 data class ServerBridgeState(
